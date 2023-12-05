@@ -1,0 +1,124 @@
+@import "reset";
+@import "var";
+
+//将HTML文档、body和id为app的元素的宽度和高度设置为100%。
+//overflow: hidden;属性隐藏了任何超出元素盒子的内容。这意味着，
+//如果#app内的内容超出了其高度或宽度，它将不会被显示，也不会显示滚动条。
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  //将溢出的部分隐藏，不显示滚动条
+  overflow: hidden;
+}
+
+body {
+  min-width: 320px;
+  font-family: Arial;
+}
+
+#app {
+  position: relative;
+}
+
+.cover-img {
+  width: 100%;
+  height: 100%;
+  //使图像按比例缩放以填充整个容器，同时保持图像不拉伸
+  object-fit: cover;
+}
+
+//浮动
+.fl {
+  float: left;
+}
+
+.fr {
+  float: right;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+.hover {
+  color: @text_color;
+  cursor: pointer;
+  &:hover {
+    color: @text_color_active;
+  }
+}
+
+.text-left {
+  text-align: left;
+}
+//以确保父容器的高度会被包含在浮动元素之中，从而避免浮动元素导致的高度塌陷问题
+//伪元素 :after 来在父容器的末尾插入一个空的块级元素
+.clearfix {
+  &:after {
+    display: block;
+    content: "";
+    clear: both;
+  }
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.overflow-hidden {
+  overflow: hidden;
+}
+
+/* 滚动条相关样式 */
+::-webkit-scrollbar {
+  /*滚动条整体部分，其中的属性有width,height,background,border（就和一个块级元素一样）等*/
+  background-color: @scrollbar_bg;
+  width: @scrollbar_size; // 纵向滚动条
+  height: @scrollbar_size; // 横向滚动条
+  border-radius: @scrollbar_border_radius;
+}
+
+::-webkit-scrollbar-button {
+  /*滚动条两端的按钮。可以用display:none让其不显示，也可以添加背景图片，颜色改变显示效果。*/
+  display: none;
+}
+
+::-webkit-scrollbar-track {
+  /*外层轨道。可以用display:none让其不显示，也可以添加背景图片，颜色改变显示效果。*/
+  display: none;
+  //background-color: rgba(255, 255, 255, 0.1);
+  border-radius: @scrollbar_border_radius;
+}
+
+::-webkit-scrollbar-track-piece {
+  /*内层轨道，滚动条中间部分（除去）。*/
+  //background-color: rgba(255, 255, 255, .1);
+  border-radius: @scrollbar_border_radius;
+}
+
+::-webkit-scrollbar-thumb {
+  /*滚动条里面可以拖动的那部分*/
+  background-color: @scrollbar_thumb;
+  border-radius: @scrollbar_border_radius;
+}
+
+//滚动条角落的边框半径
+::-webkit-scrollbar-corner {
+  border-radius: @scrollbar_border_radius;
+}
+
+::-webkit-resizer {
+  /*定义右下角拖动块的样式*/
+  border-radius: @scrollbar_border_radius;
+}
