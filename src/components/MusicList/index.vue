@@ -1,13 +1,31 @@
 <script setup>
+import { computed } from 'vue'
 import { formatSecond } from '@/utils/util.js'
+import { usePlayListStore } from '@/stores/playlist.js'
+import { storeToRefs } from 'pinia'
+const playListStore = usePlayListStore()
+//从playListStore提取currentMusic，isPlaying属性，并将其转换为响应式
+const { currentMusic, isPlaying } = storeToRefs(playListStore)
+const { setPlaying } = playListStore
+
+const emit = defineEmits(['select'])
 
 const props = defineProps({
   list: {
     type: Array,
     default: () => []
+  },
+  /**
+   * 列表类型
+   * album：显示专辑栏目（默认）
+   * duration：显示时长栏目
+   * pullUp：开启无限加载--往下滑到底加载新的歌曲
+   **/
+  listType: {
+    type: String,
+    default: 'album'
   }
 })
-console.log(props)
 
 //转换时间为mm:ss
 const getFormatTime = (seconds) => {
@@ -19,6 +37,29 @@ const listScroll = () => {
   // const { scrollHeight, offsetHeight } = e.target
   // console.log(scrollTop, scrollHeight, offsetHeight)
 }
+
+//根据歌曲是否播放 设定图标
+const getStateType = ({ id: itemId }) => {
+  return isPlaying.value && currentMusic.value.id === itemId
+    ? 'pause-circle'
+    : 'play-circle'
+}
+
+//判断显示时长还是专辑名称
+const isDuration = computed(() => {
+  return props.listType === 'duration'
+})
+
+//双击选择特定歌曲播放
+const selectItem = (item, index) => {
+  //如果当前音乐已在播放则将停止播放
+  if (currentMusic.value.id && item.id === currentMusic.value.id) {
+    setPlaying(!isPlaying.value)
+    return
+  }
+  //切换当前播放音乐，传递给父组件，父组件将进行播放操作
+  emit('select', item, index)
+}
 </script>
 <template>
   <div class="music-list flex-col">
@@ -26,17 +67,40 @@ const listScroll = () => {
       <div class="list-item list-header">
         <span class="list-name">歌曲</span>
         <span class="list-artist">歌手</span>
-        <span class="list-time">时长</span>
-        <!-- <span class="list-album">专辑</span> -->
+        <span v-if="isDuration" class="list-time">时长</span>
+        <span v-else class="list-album">专辑</span>
       </div>
 
       <div class="list-content" @scroll="listScroll">
-        <div class="list-item" v-for="(item, index) in list" :key="item.id">
+        <div
+          class="list-item"
+          v-for="(item, index) in list"
+          :key="item.id"
+          :class="{ on: isPlaying && currentMusic.id === item.id }"
+          @dblclick="selectItem(item, index)"
+        >
           <div class="list-num" v-text="index + 1"></div>
-          <div class="list-name">{{ item.name }}</div>
+          <div class="list-name">
+            <span>{{ item.name }}</span>
+            <ElectroIcon
+              :type="getStateType(item)"
+              :size="32"
+              class="hover list-menu-icon"
+            ></ElectroIcon>
+          </div>
           <div class="list-artist">{{ item.singer }}</div>
-          <div class="list-time">{{ getFormatTime(item.duration % 3600) }}</div>
-          <!-- <span class="list-album">album</span> -->
+          <div v-if="isDuration" class="list-time">
+            <span class="list-time-format">{{
+              getFormatTime(item.duration % 3600)
+            }}</span>
+            <!-- 搜索结果搜索出来的列表不能删除，因此将删除图标放在这个位置 -->
+            <ElectroIcon
+              type="delete"
+              :size="32"
+              class="hover list-menu-icon-del"
+            ></ElectroIcon>
+          </div>
+          <span v-else class="list-album">{{ item.album }}</span>
         </div>
         <slot list="listBtn"></slot>
       </div>
@@ -70,6 +134,14 @@ const listScroll = () => {
   border-bottom: 1px solid @list_item_line_color;
   line-height: 50px;
   overflow: hidden;
+  &.on {
+    color: #fff;
+    .list-num {
+      font-size: 0;
+      // 正在播放歌曲序号变成正在播放wave动画
+      background: url('assets/img/wave.gif') no-repeat center center;
+    }
+  }
   .list-num {
     display: block;
     width: 30px;

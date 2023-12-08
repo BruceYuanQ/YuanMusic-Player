@@ -2,6 +2,48 @@
 import MusicBtn from 'components/MusicBtn/index.vue'
 import Lyric from 'components/Lyric/index.vue'
 import yuanProgress from '@/base/electroProgress/index.vue'
+import volume from '@/components/volume/index.vue'
+import { usePlayListStore } from '../stores/playlist'
+import { storeToRefs } from 'pinia'
+import { nextTick, onMounted, watch } from 'vue'
+import { silencePromise } from '@/utils/util.js'
+
+import { useMmPlayer } from '@/composabeles/player.js'
+
+//与播放器进度相关的变量和函数
+const { musicReady, initAudio } = useMmPlayer()
+
+//引入store中的变量和函数
+const playListStore = usePlayListStore()
+const { isPlaying, audioEle, currentMusic } = storeToRefs(playListStore)
+
+onMounted(() => {
+  //初始化音频播放器
+  initAudio()
+  //播放结束事件
+  audioEle.value.onended = () => {}
+})
+
+//切换歌曲
+watch(currentMusic, (newMusic, oldMusic) => {
+  if (!newMusic.id) {
+    console.log(1)
+  }
+  if (newMusic.id === oldMusic.id) {
+    return
+  }
+  audioEle.value.src = newMusic.url
+  silencePromise(audioEle.value.play())
+})
+
+//播放 或 暂停
+watch(isPlaying, (newPlaying) => {
+  const audio = audioEle.value
+  nextTick(() => {
+    newPlaying ? silencePromise(audio.play()) : audio.pause()
+    musicReady.value = true
+  })
+})
 </script>
 <template>
   <div class="music flex-col">
@@ -55,10 +97,21 @@ import yuanProgress from '@/base/electroProgress/index.vue'
       <!-- 播放顺序 评论 纯净模式 音量 -->
       <div class="options">
         <!-- 播放顺序 -->
-        <ElectroIcon></ElectroIcon>
-        <div>pin lun</div>
-        <div>chun jin</div>
-        <div>yin liang</div>
+        <ElectroIcon type="oneloop pointer mode" :size="24"></ElectroIcon>
+
+        <!-- 评论 -->
+        <ElectroIcon type="comment" :size="24"></ElectroIcon>
+
+        <!-- 纯净模式 -->
+        <ElectroIcon
+          type="pureclose pointer pure-mode"
+          :size="28"
+        ></ElectroIcon>
+
+        <!-- 音量 -->
+        <div>
+          <volume></volume>
+        </div>
       </div>
     </div>
 
@@ -154,7 +207,7 @@ import yuanProgress from '@/base/electroProgress/index.vue'
     background-color: @mask_color;
   }
   .electroPlayer-bg {
-    background: url('assets/background/bg-5.jpg');
+    background: url('assets/background/bg-4.jpg');
     z-index: -2;
     //禁止背景图像重复
     background-repeat: no-repeat;
