@@ -30,7 +30,9 @@ export default {
       h('i', {
         class: 'iconfont ' + getIconCls(),
         style: getIconStyle(),
-        onClick: onClick()
+        //onClick:onClick() 会立即调用 onClick 函数而不是将其作为回调传递给 onClick 事件。因此，每次组件渲染时，都会执行 onClick 函数，导致递归更新。为了解决这个问题，你只需将其改为：
+        // onClick: onClick 将 onClick 函数作为回调传递给 onClick 事件，而不是立即执行它。
+        onClick: onClick
       })
   }
 }

@@ -52,12 +52,12 @@ const isDuration = computed(() => {
 
 //双击选择特定歌曲播放
 const selectItem = (item, index) => {
-  //如果当前音乐已在播放则将停止播放
+  // 如果当前音乐已在播放则将停止播放
   if (currentMusic.value.id && item.id === currentMusic.value.id) {
     setPlaying(!isPlaying.value)
     return
   }
-  //切换当前播放音乐，传递给父组件，父组件将进行播放操作
+  // 切换当前播放音乐，传递给父组件，父组件将进行播放操作
   emit('select', item, index)
 }
 </script>
@@ -86,6 +86,7 @@ const selectItem = (item, index) => {
               :type="getStateType(item)"
               :size="32"
               class="hover list-menu-icon"
+              @click.stop="selectItem(item, index)"
             ></ElectroIcon>
           </div>
           <div class="list-artist">{{ item.singer }}</div>

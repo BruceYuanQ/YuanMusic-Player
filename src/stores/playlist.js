@@ -13,7 +13,6 @@ export const usePlayListStore = defineStore('playList', () => {
   const currentMusic = computed(() => {
     return playList.value[currentIndex.value] || {}
   })
-
   const setPlayList = (list) => {
     playList.value = list
   }
@@ -35,6 +34,7 @@ export const usePlayListStore = defineStore('playList', () => {
     // console.log('设置audio元素成功!')
   }
   return {
+    currentIndex,
     audioEle,
     playList,
     setPlayList,
