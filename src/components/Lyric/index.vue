@@ -1,26 +1,103 @@
-<script setup></script>
+<script setup>
+import { usePlayListStore } from '@/stores/playlist.js'
+import { storeToRefs } from 'pinia'
+const playListStore = usePlayListStore()
+const { currentMusic } = storeToRefs(playListStore)
+
+import imageUrl from 'assets/img/player_cover.png'
+import { computed, nextTick, onMounted, ref } from 'vue'
+//歌曲封面图片
+const picUrl = computed(() => {
+  return currentMusic.value.id && currentMusic.value.image
+    ? `${currentMusic.value.image}?params=300y300`
+    : imageUrl
+})
+
+const props = defineProps({
+  //歌词数据
+  lyric: {
+    type: Array,
+    default: () => []
+  },
+  //是否无歌词
+  nolyric: {
+    type: Boolean,
+    default: false
+  },
+  //当前歌词行数
+  lyricIndex: {
+    type: Number,
+    default: 0
+  }
+})
+
+const musicLyric = ref(null)
+//计算歌词居中的top值  ！定值！
+const calcTop = () => {
+  const dom = musicLyric.value
+  const { display = '' } = window.getComputedStyle(dom)
+  if (display === 'none') {
+    return
+  }
+  //获取容器的高度
+  const height = dom.offsetHeight
+  //获取中间位置的行数
+  top.value = Math.floor(height / 34 / 2)
+}
+
+//创建了一个computed style属性
+const lyricTop = computed(() => {
+  //每行歌词34px    translate3d(0,-offset,0)垂直方向向上偏移offset
+  return `transform:translate3d(0,${-34 * (props.lyricIndex - top.value)}px,0)`
+})
+
+let resizeTimer
+onMounted(() => {
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer)
+    resizeTimer = setTimeout(() => calcTop(), 60)
+  })
+  //dom 下一次更新完成时 调用
+  nextTick(() => calcTop())
+})
+
+defineExpose({
+  calcTop
+})
+</script>
 <template>
   <div>
     <!-- 歌曲封面 -->
     <dl class="music-info">
       <dt>
-        <img src="/src/assets/img/player_cover.png" alt="alt" />
+        <img :src="picUrl" alt="img" />
       </dt>
-      <div>
-        <dd>歌曲名</dd>
-        <dd>歌手名</dd>
-        <dd>专辑名</dd>
+      <div v-if="currentMusic.id">
+        <dd>歌曲名: {{ currentMusic.name }}</dd>
+        <dd>歌手名: {{ currentMusic.singer }}</dd>
+        <dd>专辑名: {{ currentMusic.album }}</dd>
       </div>
-      <div>
+      <div v-else>
         <dd>
-          <a href="http://localhost:5173/music/playlist">Yuan</a>
+          <a href="http://localhost:5173/music/playlist">Yuan在线音乐播放器</a>
         </dd>
       </div>
     </dl>
     <!-- 歌词部分 -->
-    <div class="music-lyric">
-      <div class="music-lyric-items">
-        <p>还没有播放音乐哦~</p>
+    <div class="music-lyric" ref="musicLyric">
+      <div class="music-lyric-items" :style="lyricTop">
+        <p v-if="!currentMusic.id">还没有播放音乐哦~</p>
+        <p v-else-if="nolyric">暂无歌词</p>
+        <div v-else-if="lyric.length > 0">
+          <p
+            v-for="(item, index) in lyric"
+            :key="index"
+            :class="{ on: lyricIndex === index }"
+          >
+            {{ item.text }}
+          </p>
+        </div>
+        <p v-else>歌词加载失败</p>
       </div>
     </div>
   </div>
@@ -48,7 +125,7 @@
       top: 0;
       width: 201px;
       height: 180px;
-      background: url('assets/img/album_cover_player.png');
+      background: url('assets/img/album_cover_player.png') 0 0 no-repeat;
     }
   }
   dd {
@@ -102,19 +179,31 @@
   }
 }
 
-// //当屏幕小于960px时
-// @media (max-width: 960px) {
-//   .music-info {
-//     display: none;
-//   }
-//   .music-lyric {
-//     top: 0;
-//     .music-lyric-items {
-//       font-size: @font_size_medium;
-//     }
-//   }
-// }
-// //当屏幕大于960px时
-// @media (min-width: 960px) {
-// }
+//当屏幕小于960px时
+@media (max-width: 960px) {
+  .music-info {
+    display: none;
+  }
+  .music-lyric {
+    top: 0;
+    .music-lyric-items {
+      font-size: @font_size_medium;
+    }
+  }
+}
+//当屏幕大于960px时
+@media (min-width: 960px) {
+  .pure {
+    .music-info {
+      display: none;
+    }
+    .music-lyric {
+      top: 0;
+      .music-lyric-items {
+        // line-height: 40px;
+        font-size: @font_size_medium;
+      }
+    }
+  }
+}
 </style>

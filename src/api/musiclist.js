@@ -34,3 +34,12 @@ export const getSongDetail = (ids) => {
     }
   })
 }
+
+//获取歌曲的歌词
+export const getLyric = (id) => {
+  return request.get('/lyric', {
+    params: {
+      id
+    }
+  })
+}

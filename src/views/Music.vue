@@ -5,18 +5,21 @@ import yuanProgress from '@/base/electroProgress/index.vue'
 import volume from '@/components/volume/index.vue'
 import { usePlayListStore } from '../stores/playlist'
 import { storeToRefs } from 'pinia'
-import { nextTick, onMounted, watch, computed } from 'vue'
-import { silencePromise, formatSecond } from '@/utils/util.js'
+import { nextTick, onMounted, watch, computed, ref } from 'vue'
+import { silencePromise, formatSecond, parseLyric } from '@/utils/util.js'
+import { PLAY_MODE } from '@/config.js'
 
 import { useMmPlayer } from '@/composabeles/player.js'
+import { useRouter } from 'vue-router'
+const router = useRouter()
 
 //与播放器进度相关的变量和函数
 const { musicReady, initAudio, currentTime, currentProgress } = useMmPlayer()
 
 //引入store中的变量和函数
 const playListStore = usePlayListStore()
-const { setCurrentIndex, setPlaying } = playListStore
-const { isPlaying, audioEle, currentMusic, playList, currentIndex } =
+const { setCurrentIndex, setPlaying, setMode } = playListStore
+const { isPlaying, audioEle, currentMusic, playList, currentIndex, mode } =
   storeToRefs(playListStore)
 
 onMounted(() => {
@@ -24,11 +27,17 @@ onMounted(() => {
   initAudio()
 
   //播放结束事件
-  audioEle.value.onended = () => {}
+  audioEle.value.onended = () => {
+    if (mode.value === PLAY_MODE.ONE_LOOP) {
+      loop()
+    } else {
+      next()
+    }
+  }
 
   //音乐播放出错
   audioEle.value.onerror = () => {
-    alert('当前音乐不可播放')
+    alert('播放出错了')
   }
 })
 
@@ -41,7 +50,10 @@ watch(currentMusic, (newMusic, oldMusic) => {
     return
   }
   audioEle.value.src = newMusic.url
+  //重置相关参数
+  lyricIndex.value = currentTime.value = currentProgress.value = 0
   silencePromise(audioEle.value.play())
+  getMusicLyric(newMusic.id)
 })
 
 //播放 或 暂停
@@ -60,7 +72,7 @@ const prev = function () {
     return
   }
   if (playList.value.length === 1) {
-    return
+    loop()
   } else {
     let index = currentIndex.value - 1
     if (index < 0) {
@@ -88,15 +100,20 @@ const next = () => {
   if (!musicReady.value) {
     return
   }
-  let index = currentIndex.value + 1
-  if (index === length) {
-    index = 0
+  const length = playList.value.length
+  if (length === 1) {
+    loop()
+  } else {
+    let index = currentIndex.value + 1
+    if (index === length) {
+      index = 0
+    }
+    if (!isPlaying.value && musicReady.value) {
+      setPlaying(true)
+    }
+    setCurrentIndex(index)
+    musicReady.value = false
   }
-  if (!isPlaying.value && musicReady.value) {
-    setPlaying(true)
-  }
-  setCurrentIndex(index)
-  musicReady.value = false
 }
 
 //播放进度百分比
@@ -115,6 +132,119 @@ const progressMusicEnd = (percent) => {
   //currentTime不是响应的，所以不用currentTime
   audioEle.value.currentTime = currentMusic.value.duration * percent
 }
+
+//切换播放顺序
+const modeChange = () => {
+  const newMode = (mode.value + 1) % 4
+  setMode(newMode)
+}
+
+//获取播放模式icon
+const getModeType = computed(() => {
+  return {
+    //LIST_LOOP: 0  <config.js>
+    //当 mode.value 等于 PLAY_MODE.LIST_LOOP 时，返回 "listloop"
+    [PLAY_MODE.LIST_LOOP]: 'listloop',
+    [PLAY_MODE.ORDER]: 'order',
+    [PLAY_MODE.RANDOM]: 'random',
+    [PLAY_MODE.ONE_LOOP]: 'oneloop'
+  }[mode.value]
+})
+
+//获取播放模式title
+const getModeTitle = computed(() => {
+  const key = 'Ctrl + 0'
+  return (
+    {
+      [PLAY_MODE.LIST_LOOP]: '列表循环',
+      [PLAY_MODE.ORDER]: '顺序播放',
+      [PLAY_MODE.RANDOM]: '随机播放',
+      [PLAY_MODE.ONE_LOOP]: '单曲循环'
+    }[mode.value] +
+    ' ' +
+    key
+  )
+})
+
+//循环播放
+const loop = () => {
+  //当前曲目开始重新播放
+  audioEle.value.currentTime = 0
+  silencePromise(audioEle.value.play())
+  setPlaying(true)
+  if (Lyric.value.length > 0) {
+    lyricIndex.value = 0
+  }
+}
+
+//打开歌曲评论界面
+const openComment = () => {
+  if (!currentMusic.value.id || !musicReady.value) {
+    return
+  }
+  router.push(`/music/comment/${currentMusic.value.id}`)
+}
+
+//歌词显示变量
+const lyric = ref([])
+const nolyric = ref(false)
+const lyricIndex = ref(0)
+const lyricVisible = ref(false)
+// const lyricVisible = ref(false)
+
+import { getLyric } from '@/api/musiclist.js'
+
+//获取歌词
+const getMusicLyric = async (id) => {
+  const res = await getLyric(id)
+  if (res.lrc && res.lrc.lyric) {
+    nolyric.value = false
+    lyric.value = parseLyric(res.lrc.lyric)
+  } else {
+    nolyric.value = true
+  }
+  silencePromise(audioEle.value.play())
+}
+
+const yuanLyric = ref(null)
+
+//歌词滚动
+watch(currentTime, (newTime, oldTime) => {
+  if (nolyric.value || lyric.value.length === 0) {
+    return
+  }
+  let start = 0
+  let end = lyric.value.length - 1
+  let index = lyricIndex.value
+  if (newTime > oldTime) {
+    start = index
+  } else {
+    end = index
+  }
+  for (let i = start; i <= end; i++) {
+    if (lyric.value[i].time < newTime) {
+      index = i
+    }
+    lyricIndex.value = index
+  }
+})
+
+//纯净模式相关
+const isPure = ref(false)
+const openPure = () => {
+  isPure.value = !isPure.value
+  nextTick(() => {
+    yuanLyric.value.calcTop()
+  })
+}
+const getPureModeType = computed(() => {
+  return isPure.value ? 'pureopen' : 'pureclose'
+})
+
+//关闭歌词
+const handleCloseLyric = () => {
+  lyricVisible.value = false
+}
 </script>
 <template>
   <div class="music flex-col">
@@ -126,8 +256,14 @@ const progressMusicEnd = (percent) => {
         <RouterView class="router-view"></RouterView>
       </div>
       <!-- 右方歌词显示 -->
-      <div class="music-right">
-        <Lyric></Lyric>
+      <div class="music-right" :class="{ show: lyricVisible, pure: isPure }">
+        <div class="close-lyric" @click="handleCloseLyric">关闭歌词</div>
+        <Lyric
+          ref="yuanLyric"
+          :lyric="lyric"
+          :nolyric="nolyric"
+          :lyricIndex="lyricIndex"
+        ></Lyric>
       </div>
     </div>
 
@@ -192,21 +328,27 @@ const progressMusicEnd = (percent) => {
         <!-- 播放顺序 -->
         <ElectroIcon
           class="pointer mode"
-          type="oneloop pointer mode"
+          :type="getModeType"
+          :title="getModeTitle"
           :size="24"
+          @click="modeChange"
         ></ElectroIcon>
 
         <!-- 评论 -->
         <ElectroIcon
           class="pointer comment"
           type="comment"
+          title="评论"
+          @click="openComment"
           :size="24"
         ></ElectroIcon>
 
         <!-- 纯净模式 -->
         <ElectroIcon
           class="pointer pure-mode"
-          type="pureclose pointer pure-mode"
+          @click="openPure"
+          :type="getPureModeType"
+          title="纯净模式"
           :size="28"
         ></ElectroIcon>
 
@@ -346,6 +488,20 @@ const progressMusicEnd = (percent) => {
     //对元素进行缩放，使其比原始大小大 1.1 倍
     transform: scale(1.1);
   }
+
+  @media (min-width: 960px) {
+    .close-lyric {
+      display: none;
+    }
+    .music-right {
+      &.pure {
+        display: block;
+        width: 100%;
+        margin-left: 0;
+      }
+    }
+  }
+
   // 当屏幕小于960时，右侧歌词组件消失，纯净模式按钮消失
   @media (max-width: 960px) {
     .music-right {

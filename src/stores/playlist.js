@@ -9,6 +9,7 @@ export const usePlayListStore = defineStore('playList', () => {
 
   const isPlaying = ref(false) //是否正在播放
   const currentIndex = ref(-1) //当前音乐索引
+  const mode = ref(1) //播放模式 默认播放顺序
 
   const currentMusic = computed(() => {
     return playList.value[currentIndex.value] || {}
@@ -33,6 +34,11 @@ export const usePlayListStore = defineStore('playList', () => {
     // console.log(audioEle.value)
     // console.log('设置audio元素成功!')
   }
+
+  //设置播放模式
+  const setMode = (newMode) => {
+    mode.value = newMode
+  }
   return {
     currentIndex,
     audioEle,
@@ -42,6 +48,8 @@ export const usePlayListStore = defineStore('playList', () => {
     currentMusic,
     setPlaying,
     setCurrentIndex,
-    setAudioEle
+    setAudioEle,
+    mode,
+    setMode
   }
 })
