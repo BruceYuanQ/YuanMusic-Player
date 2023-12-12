@@ -8,6 +8,7 @@ import { storeToRefs } from 'pinia'
 import { nextTick, onMounted, watch, computed, ref } from 'vue'
 import { silencePromise, formatSecond, parseLyric } from '@/utils/util.js'
 import { PLAY_MODE } from '@/config.js'
+import { showToast } from '../base/electroToast'
 
 import { useMmPlayer } from '@/composabeles/player.js'
 import { useRouter } from 'vue-router'
@@ -37,7 +38,12 @@ onMounted(() => {
 
   //音乐播放出错
   audioEle.value.onerror = () => {
-    alert('播放出错了')
+    let alertMsg = '当前音乐不可播放，已自动播放下一首'
+    if (playList.value.length === 1) {
+      alertMsg = '暂时没有可以播放的音乐哦'
+    }
+    showToast({ mesage: alertMsg })
+    next()
   }
 })
 
