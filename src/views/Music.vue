@@ -2,7 +2,7 @@
 import MusicBtn from 'components/MusicBtn/index.vue'
 import Lyric from 'components/Lyric/index.vue'
 import yuanProgress from '@/base/electroProgress/index.vue'
-import volume from '@/components/volume/index.vue'
+import Volume from '@/components/volume/index.vue'
 import { usePlayListStore } from '../stores/playlist'
 import { storeToRefs } from 'pinia'
 import { nextTick, onMounted, watch, computed, ref } from 'vue'
@@ -19,9 +19,17 @@ const { musicReady, initAudio, currentTime, currentProgress } = useMmPlayer()
 
 //引入store中的变量和函数
 const playListStore = usePlayListStore()
-const { setCurrentIndex, setPlaying, setMode } = playListStore
-const { isPlaying, audioEle, currentMusic, playList, currentIndex, mode } =
-  storeToRefs(playListStore)
+const { setCurrentIndex, setPlaying, setMode, setmuIndex, resetIndex } =
+  playListStore
+const {
+  isPlaying,
+  audioEle,
+  currentMusic,
+  playList,
+  currentIndex,
+  mode,
+  muindex
+} = storeToRefs(playListStore)
 
 onMounted(() => {
   //监听音频播放器
@@ -84,7 +92,7 @@ const prev = function () {
     if (index < 0) {
       index = playList.value.length - 1
     }
-    setCurrentIndex(index)
+    setmuIndex()
     if (!isPlaying.value && musicReady.value) {
       setPlaying(true)
     }
@@ -103,6 +111,14 @@ const play = () => {
 
 //下一首
 const next = () => {
+  if (muindex.value === 6) {
+    console.log(11)
+    musicReady.value = false
+    setPlaying(false)
+    alert('广告时间')
+    musicReady.value = true
+    resetIndex
+  }
   if (!musicReady.value) {
     return
   }
@@ -111,6 +127,7 @@ const next = () => {
     loop()
   } else {
     let index = currentIndex.value + 1
+    setmuIndex()
     if (index === length) {
       index = 0
     }
@@ -251,6 +268,20 @@ const getPureModeType = computed(() => {
 const handleCloseLyric = () => {
   lyricVisible.value = false
 }
+
+import { useUserStore } from '@/stores/user'
+const userStore = useUserStore()
+const { setVolume } = userStore
+
+// 与播放器进度相关变量和函数
+const { volume } = storeToRefs(userStore) // 音量大小
+const isMute = ref(false) // 是否静音
+// 音量调节
+const volumeChange = (percent) => {
+  isMute.value = percent === 0
+  audioEle.value.volume = percent
+  setVolume(percent)
+}
 </script>
 <template>
   <div class="music flex-col">
@@ -259,7 +290,7 @@ const handleCloseLyric = () => {
       <!-- 左方歌曲列表显示 -->
       <div class="music-left flex-col">
         <MusicBtn></MusicBtn>
-        <RouterView class="router-view"></RouterView>
+        <RouterView class="router-view"> </RouterView>
       </div>
       <!-- 右方歌词显示 -->
       <div class="music-right" :class="{ show: lyricVisible, pure: isPure }">
@@ -360,7 +391,7 @@ const handleCloseLyric = () => {
 
         <!-- 音量 -->
         <div class="music-bar-volumne">
-          <volume></volume>
+          <Volume :volume="volume" @volume-change="volumeChange"></Volume>
         </div>
       </div>
     </div>
@@ -371,6 +402,11 @@ const handleCloseLyric = () => {
   </div>
 </template>
 <style lang="less" scoped>
+.guanggao {
+  width: 400px;
+  height: 400px;
+  margin: 0 auto;
+}
 .router-view {
   flex: 1;
   overflow-x: hidden;
@@ -386,8 +422,8 @@ const handleCloseLyric = () => {
   overflow: hidden;
   .music-content {
     display: flex;
-    //弹性项的扩展比例
-    // flex: 1;
+    // 弹性项的扩展比例,防止布局乱套
+    flex: 1;
     overflow: hidden;
     width: 100%;
     .music-left {

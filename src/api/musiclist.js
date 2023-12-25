@@ -1,5 +1,6 @@
 import request from '@/utils/request.js'
 import { formatSongs } from '../utils/song'
+import { DEFAULT_LIMIT } from '@/config'
 
 //根据歌单id获取歌单列表
 export const getPlayListById = async (id) => {
@@ -40,6 +41,48 @@ export const getLyric = (id) => {
   return request.get('/lyric', {
     params: {
       id
+    }
+  })
+}
+
+// 获取音乐是否可用
+export const getCheckMusic = (id) => {
+  return request.get('/check/music', {
+    params: { id }
+  })
+}
+
+// 获取音乐地址
+export const getMusicUrl = (id) => {
+  return request.get('/song/url', {
+    params: {
+      id
+    }
+  })
+}
+// 获取音乐评论
+export const getComent = (id, page, limit = DEFAULT_LIMIT) => {
+  return request.get('/comment/music', {
+    params: {
+      offset: page * limit,
+      limit: limit,
+      id
+    }
+  })
+}
+
+// 热门搜索
+export const getSearchHot = () => {
+  return request.get('/search/hot')
+}
+
+// 搜索歌曲
+export const getSearchList = (keywords, page = 0, limit = 30) => {
+  return request.get('/search', {
+    params: {
+      offset: page * limit,
+      limit: limit,
+      keywords
     }
   })
 }

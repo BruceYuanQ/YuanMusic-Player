@@ -1,5 +1,6 @@
 <script setup>
-import { computed } from 'vue'
+import ElectroNoResult from 'base/electroNoResult/ElectroNoResult.vue'
+import { computed, ref, watch } from 'vue'
 import { formatSecond } from '@/utils/util.js'
 import { usePlayListStore } from '@/stores/playlist.js'
 import { storeToRefs } from 'pinia'
@@ -8,7 +9,7 @@ const playListStore = usePlayListStore()
 const { currentMusic, isPlaying } = storeToRefs(playListStore)
 const { setPlaying } = playListStore
 
-const emit = defineEmits(['select'])
+const emit = defineEmits(['select', 'pullUpLoad'])
 
 const props = defineProps({
   list: {
@@ -30,12 +31,6 @@ const props = defineProps({
 //转换时间为mm:ss
 const getFormatTime = (seconds) => {
   return formatSecond(seconds)
-}
-
-const listScroll = () => {
-  // const scrollTop = e.target.scrollTop
-  // const { scrollHeight, offsetHeight } = e.target
-  // console.log(scrollTop, scrollHeight, offsetHeight)
 }
 
 //根据歌曲是否播放 设定图标
@@ -60,6 +55,51 @@ const selectItem = (item, index) => {
   // 切换当前播放音乐，传递给父组件，父组件将进行播放操作
   emit('select', item, index)
 }
+
+// 触发滚动加载的阈值
+const THRESHOLD = 100
+// 滚动加载，pullup类型
+const lockUp = ref(true) // 是否锁定滚动加载事件
+const listScroll = (e) => {
+  if (props.listType !== 'pullUp' || lockUp.value) {
+    return
+  }
+  const scrollTop = e.target.scrollTop
+  const { scrollHeight, offsetHeight } = e.target
+  // console.log(scrollHeight, scrollTop, offsetHeight);
+  const heightLeft = scrollHeight - scrollTop - offsetHeight // 剩余内容高度
+  if (heightLeft <= THRESHOLD) {
+    lockUp.value = true // 锁定滚动加载事件
+    emit('pullUpLoad') // 触发滚动加载事件
+  }
+}
+
+watch(
+  () => props.list,
+  (newList, oldList) => {
+    if (props.listType !== 'pullUp') {
+      return
+    }
+    if (newList.length !== oldList.length) {
+      lockUp.value = false
+    } else if (newList[newList.length - 1].id !== oldList[oldList.length - 1]) {
+      lockUp.value = false
+    }
+  }
+)
+
+// 删除特定歌曲
+const deleteItem = (index) => {
+  emit('del', index)
+}
+
+// 切换搜索时，列表滑动到顶部，暴露给父组件
+const listContent = ref(null)
+const scrollToTop = () => {
+  listContent.value.scrollTop = 0
+}
+
+defineExpose({ scrollToTop })
 </script>
 <template>
   <div class="music-list flex-col">
@@ -99,6 +139,7 @@ const selectItem = (item, index) => {
               type="delete"
               :size="32"
               class="hover list-menu-icon-del"
+              @click="deleteItem"
             ></ElectroIcon>
           </div>
           <span v-else class="list-album">{{ item.album }}</span>
@@ -107,7 +148,7 @@ const selectItem = (item, index) => {
       </div>
     </template>
 
-    <div v-else>--空空如也--</div>
+    <ElectroNoResult v-else>--空空如也--</ElectroNoResult>
   </div>
 </template>
 <style lang="less" scoped>

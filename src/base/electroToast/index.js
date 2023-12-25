@@ -18,7 +18,7 @@ export class ToastCreater {
     //创建toast组件的虚拟节点
     const toast = h(Toast, this.options)
     render(toast, this.container)
-    document.body.insertBefore(this.container, document.firstChild)
+    document.body.insertBefore(this.container, document.body.firstChild)
 
     //到时间消除
     if (defaultOptions.duration) {

@@ -11,6 +11,7 @@ export const useMmPlayer = () => {
   const musicReady = ref(false) //控制下方播放器的显示
   const currentTime = ref(0)
   const currentProgress = ref(0)
+
   //监听函数
   const initAudio = () => {
     //音频开始播放，当音乐开始播放时，将播放工具栏激活
@@ -58,5 +59,11 @@ export const useMmPlayer = () => {
       // addHistoryMusic(currentMusic.value)
     }
   }
-  return { musicReady, currentTime, currentMusic, currentProgress, initAudio }
+  return {
+    musicReady,
+    currentTime,
+    currentMusic,
+    currentProgress,
+    initAudio
+  }
 }

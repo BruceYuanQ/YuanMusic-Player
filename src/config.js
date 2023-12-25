@@ -30,3 +30,6 @@ export const EL_CONFIG = {
   // 默认背景
   BACKGROUND: BACKGROUNDS[Math.floor(Math.random() * BACKGROUNDS.length)]
 }
+
+/* 默认分页数量 */
+export const DEFAULT_LIMIT = 30
